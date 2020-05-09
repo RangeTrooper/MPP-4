@@ -12,6 +12,11 @@ socket.on('data', data => {
     render(window.location.hash);
 });
 
+socket.on('access_denied', () =>{
+    alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
+    showAuthButtons();
+});
+
 socket.on('logged_in', (token, expiringTime) =>{
     document.cookie = "token" + '=' + token +"; expires=" + expiringTime;
     hideAuthButtons();
@@ -21,12 +26,17 @@ socket.on('logged_in', (token, expiringTime) =>{
 socket.on('guitar_deleted', id =>{
     if (id === undefined) {
         alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
-        //showAuthButtons();
+        showAuthButtons();
     }
     else{
         console.log(id);
         $("tr[data-rowid='" + id + "']").remove();
     }
+});
+
+socket.on('login_error', () =>{
+    alert("Ошибка входа. Проверьте введённые данные");
+    reset();
 });
 
 socket.on('guitar_added', data =>{
@@ -54,17 +64,6 @@ function getCookie(cname) {
     var name = cname + "=";
     var decodedCookie = decodeURIComponent(document.cookie);
     return decodedCookie;
-    var ca = decodedCookie.split(';');
-    for(var i = 0; i <ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) == ' ') {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-        }
-    }
-    return "";
 }
 
 function DeleteGuitar(id) {
@@ -72,67 +71,21 @@ function DeleteGuitar(id) {
     temp = temp.split('=')
     let token = temp[1]
     socket.emit('delete_guitar', id, token);
-    /*$.ajax({
-        url: "api/guitars/" + id,
-        contentType: "application/json",
-        method: "DELETE",
-        xhrFields: {
-            withCredentials: true
-        },
-        success: function (guitar_id) {
-            if (guitar_id === undefined) {
-                alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
-                showAuthButtons();
-            }
-            else{
-                console.log(guitar_id);
-                $("tr[data-rowid='" + guitar_id + "']").remove();
-            }
-        },
-        error: function () {
-            alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
-            showAuthButtons();
-        }
-    })*/
 }
 
 function logIn(login, password){
     socket.emit('login',login, password);
-    //socket.emit('authentication', {username: login, password: password});
-    /*$.ajax({
-        url: "/api/login",
-        contentType: "application/json",
-        method: "POST",
-        data: JSON.stringify({
-            login: login,
-            password: password
-        }),
-        success: function () {
-            hideAuthButtons(login);
-            window.location.hash = "#main";
-        }
-    })*/
 }
+
+function logOut() {
+    document.cookie = "token=; expires=" + "Thu, 01 Jan 1970 00:00:00 UTC";
+}
+
 function addGuitar(model, amount, id, imageSrc) {
     if (imageSrc.length ===0)
         imageSrc = null;
     let data =[model, amount, id, imageSrc];
     socket.emit('add_guitar',data);
-    /*$.ajax({
-        url: "/api/guitars",
-        contentType: "application/json",
-        method: "POST",
-        data: JSON.stringify({
-            model: model,
-            amount: amount,
-            id: id,
-            imageSrc: imageSrc
-        }),
-        success: function (guitar) {
-            $("#adding_form").find("input").val('');
-            $("table tbody").append(row(guitar));
-        }
-    })*/
 }
 
 $("#adding_form").submit(function (e) {
@@ -144,22 +97,17 @@ $("#adding_form").submit(function (e) {
     addGuitar(model, amountInStock,id,imageSrc)
 });
 
+$("#li_logout").click(function () {
+    logOut();
+});
+
 window.onload = function () {
-    socket.emit("verify", document.cookie.tokem)
-    $.ajax({
-        url: '/api/verify',
-        type: "GET",
-        success: function (res) {
-            if (res)
-                hideAuthButtons();
-            else
-                showAuthButtons();
-        }
-    });
+    let temp = getCookie("token");
+    temp = temp.split('=')
+    let token = temp[1]
+    socket.emit("verify", token);
 };
 
-
-//GetGuitars();
 function hideAuthButtons(){
     $("#li_login").hide();
     $("#li_register").hide();
@@ -208,26 +156,6 @@ function render(hashKey) {
             pages[0].style.display = 'block';
             document.getElementById("li_main").classList.add("active");
     }
-}
-
-function GetGuitars() {
-    //socket.emit('get_guitars', )
-    $.ajax({
-        url: "/api/guitars",
-        type: "GET",
-        contentType: "application/json",
-        success: function (guitars) {
-
-            var rows = "";
-            $.each(guitars, function (index, guitar) {
-                rows += row(guitar);
-            })
-            $("table tbody").append(rows);
-            $('#guitarTable').DataTable();
-            $('.dataTables_length').addClass('bs-select');
-            render(window.location.hash);
-        }
-    });
 }
 
 function reset() {

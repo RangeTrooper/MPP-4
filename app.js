@@ -66,10 +66,18 @@ io.on('connection', (socket) => {
         });
     });
 
+    socket.on('verify', token =>{
+        if ((token !== null) && verifyToken(token)){
+            socket.emit("logged_in")
+        }else{
+
+        }
+    });
+
     socket.on('delete_guitar', function(guitar_id, token){
         console.log(guitar_id);
         console.log(token);
-        if (verifyToken(token)){
+        if ((token !== null) && verifyToken(token)){
             connection.query("DELETE FROM warehouse WHERE guitar_id = ?", guitar_id, function (err, results) {
                 if (err)
                     console.log(err);
@@ -84,7 +92,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('login', function (login, password) {
-        //console.log(login + "  " + password);
         let user=new User(login,password,null);
         let passwordDB ;
         let sql="SELECT password FROM user WHERE login = ?";
@@ -97,13 +104,11 @@ io.on('connection', (socket) => {
                     const expiresIn = 60 * 60;
                     const accessToken = jwt.sign({login: login}, process.env.SECRET_KEY, {expiresIn: expiresIn});
                     socket.emit('logged_in', accessToken, setExpiringTime());
-                    //res.setHeader('Set-Cookie', 'token=' + accessToken + '; expires = '+ setExpiringTime()+';Secure, HttpOnly');
-                    //res.status(200).send();
                 } else {
-                    //res.status(401);
+                    socket.emit('login_error')
                 }
             }else{
-                //res.status(401).send();
+                socket.emit('login_error')
             }
         });
     })
