@@ -12,7 +12,100 @@ socket.on('data', data => {
     render(window.location.hash);
 });
 
+socket.on('guitar_added', data =>{
+    $("#adding_form").find("input").val('');
+    $("table tbody").append(row(data));
+});
 
+window.onhashchange = function () {
+    render(window.location.hash);
+};
+
+$("#login_form").submit(function (e) {
+    e.preventDefault();
+    let login = this.elements["login_input"].value;
+    let password = this.elements["password_input"].value;
+    logIn(login,password);
+})
+
+$("body").on("click", ".removeLink", function () {
+    var id = $(this).data("id");
+    DeleteGuitar(id);
+});
+
+function DeleteGuitar(id) {
+    socket.emit('delete_guitar', id);
+    /*$.ajax({
+        url: "api/guitars/" + id,
+        contentType: "application/json",
+        method: "DELETE",
+        xhrFields: {
+            withCredentials: true
+        },
+        success: function (guitar_id) {
+            if (guitar_id === undefined) {
+                alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
+                showAuthButtons();
+            }
+            else{
+                console.log(guitar_id);
+                $("tr[data-rowid='" + guitar_id + "']").remove();
+            }
+        },
+        error: function () {
+            alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
+            showAuthButtons();
+        }
+    })*/
+}
+
+function logIn(login, password){
+    socket.emit('login',login, password);
+    //socket.emit('authentication', {username: login, password: password});
+    /*$.ajax({
+        url: "/api/login",
+        contentType: "application/json",
+        method: "POST",
+        data: JSON.stringify({
+            login: login,
+            password: password
+        }),
+        success: function () {
+            hideAuthButtons(login);
+            window.location.hash = "#main";
+        }
+    })*/
+}
+function addGuitar(model, amount, id, imageSrc) {
+    if (imageSrc.length ===0)
+        imageSrc = null;
+    let data =[model, amount, id, imageSrc];
+    socket.emit('add_guitar',data);
+    /*$.ajax({
+        url: "/api/guitars",
+        contentType: "application/json",
+        method: "POST",
+        data: JSON.stringify({
+            model: model,
+            amount: amount,
+            id: id,
+            imageSrc: imageSrc
+        }),
+        success: function (guitar) {
+            $("#adding_form").find("input").val('');
+            $("table tbody").append(row(guitar));
+        }
+    })*/
+}
+
+$("#adding_form").submit(function (e) {
+    e.preventDefault();
+    let model = this.elements["model"].value;
+    let amountInStock = this.elements["amount"].value;
+    let id = this.elements["guitar_id"].value;
+    let imageSrc = this.elements["image"].value;;
+    addGuitar(model, amountInStock,id,imageSrc)
+});
 /*
 window.onload = function () {
     $.ajax({
