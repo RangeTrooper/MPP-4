@@ -111,7 +111,22 @@ io.on('connection', (socket) => {
                 socket.emit('login_error')
             }
         });
-    })
+    });
+
+    socket.on('register', (login, email, password) =>{
+        password= bcrypt.hashSync(password,10);
+        let data=[login,email,password];
+        let sql="INSERT INTO user (login,email,password) VALUES (?,?,?)";
+        connection.query(sql,data,function (err) {
+            if(err)
+                console.log("Error adding a new user");
+            else {
+                const expiresIn = 60 * 60;
+                const accessToken = jwt.sign({login: login}, process.env.SECRET_KEY, {expiresIn: expiresIn});
+                socket.emit('logged_in', accessToken, setExpiringTime());
+            }
+        });
+    });
 });
 
 function verifyToken(token) {

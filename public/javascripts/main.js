@@ -79,6 +79,7 @@ function logIn(login, password){
 
 function logOut() {
     document.cookie = "token=; expires=" + "Thu, 01 Jan 1970 00:00:00 UTC";
+    showAuthButtons();
 }
 
 function addGuitar(model, amount, id, imageSrc) {
@@ -119,6 +120,18 @@ function showAuthButtons() {
     $("#li_register").show();
     $("#li_logout").hide();
 }
+
+function RegisterUser(login,email,password){
+    socket.emit("register", login, email, password);
+}
+
+$("#register_form").submit(function (e) {
+    e.preventDefault();
+    let login=this.elements["login_input"].value;
+    let email=this.elements["email_input"].value;
+    let password=this.elements["password_input"].value;
+    RegisterUser(login,email,password);
+});
 
 function render(hashKey) {
     let pages = document.querySelectorAll(".page");
