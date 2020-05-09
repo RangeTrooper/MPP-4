@@ -12,6 +12,23 @@ socket.on('data', data => {
     render(window.location.hash);
 });
 
+socket.on('logged_in', (token, expiringTime) =>{
+    document.cookie = "token" + '=' + token +"; expires=" + expiringTime;
+    hideAuthButtons();
+    window.location.hash = "#main";
+});
+
+socket.on('guitar_deleted', id =>{
+    if (id === undefined) {
+        alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
+        //showAuthButtons();
+    }
+    else{
+        console.log(id);
+        $("tr[data-rowid='" + id + "']").remove();
+    }
+});
+
 socket.on('guitar_added', data =>{
     $("#adding_form").find("input").val('');
     $("table tbody").append(row(data));
@@ -33,8 +50,28 @@ $("body").on("click", ".removeLink", function () {
     DeleteGuitar(id);
 });
 
+function getCookie(cname) {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    return decodedCookie;
+    var ca = decodedCookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+
 function DeleteGuitar(id) {
-    socket.emit('delete_guitar', id);
+    let temp = getCookie("token");
+    temp = temp.split('=')
+    let token = temp[1]
+    socket.emit('delete_guitar', id, token);
     /*$.ajax({
         url: "api/guitars/" + id,
         contentType: "application/json",
@@ -106,8 +143,9 @@ $("#adding_form").submit(function (e) {
     let imageSrc = this.elements["image"].value;;
     addGuitar(model, amountInStock,id,imageSrc)
 });
-/*
+
 window.onload = function () {
+    socket.emit("verify", document.cookie.tokem)
     $.ajax({
         url: '/api/verify',
         type: "GET",
@@ -119,10 +157,20 @@ window.onload = function () {
         }
     });
 };
-*/
+
 
 //GetGuitars();
+function hideAuthButtons(){
+    $("#li_login").hide();
+    $("#li_register").hide();
+    $("#li_logout").show();
+}
 
+function showAuthButtons() {
+    $("#li_login").show();
+    $("#li_register").show();
+    $("#li_logout").hide();
+}
 
 function render(hashKey) {
     let pages = document.querySelectorAll(".page");
@@ -196,4 +244,10 @@ let row = function (guitar) {
         "<td>" + guitar.guitar_name + "</td> <td>" + guitar.amount_in_stock + "</td>" +
         "<td><a class='editLink btn btn-info' data-id='" + guitar.guitar_id + "'>Изменить</a> | " +
         "<a class='removeLink btn btn-danger' data-id='" + guitar.guitar_id + "'>Удалить</a></td></tr>";
+};
+
+async function uploadFile(input) {
+    let formData = new FormData();
+    formData.append("file", input.files[0]);
+    await fetch('/api/upload',{method: "POST", body: formData});
 }

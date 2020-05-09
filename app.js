@@ -24,9 +24,11 @@ let connection = mysql.createConnection({
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public/images')));
 
+/*
 app.get('/', (req,res) => {
     console.log('working');
 });
+*/
 
 
 
@@ -64,12 +66,25 @@ io.on('connection', (socket) => {
         });
     });
 
-    socket.on('delete_guitar', function(guitar_id){
+    socket.on('delete_guitar', function(guitar_id, token){
         console.log(guitar_id);
+        console.log(token);
+        if (verifyToken(token)){
+            connection.query("DELETE FROM warehouse WHERE guitar_id = ?", guitar_id, function (err, results) {
+                if (err)
+                    console.log(err);
+                else {
+                    console.log("Data Deleted");
+                    socket.emit('guitar_deleted', guitar_id);
+                }
+            });
+        }
+        else
+            socket.emit('access_denied');
     });
 
     socket.on('login', function (login, password) {
-        console.log(login + "  " + password);
+        //console.log(login + "  " + password);
         let user=new User(login,password,null);
         let passwordDB ;
         let sql="SELECT password FROM user WHERE login = ?";
@@ -81,40 +96,21 @@ io.on('connection', (socket) => {
                 if (bcrypt.compareSync(password, passwordDB)) {
                     const expiresIn = 60 * 60;
                     const accessToken = jwt.sign({login: login}, process.env.SECRET_KEY, {expiresIn: expiresIn});
-                    res.setHeader('Set-Cookie', 'token=' + accessToken + '; expires = '+ setExpiringTime()+';Secure, HttpOnly');
-                    res.status(200).send();
+                    socket.emit('logged_in', accessToken, setExpiringTime());
+                    //res.setHeader('Set-Cookie', 'token=' + accessToken + '; expires = '+ setExpiringTime()+';Secure, HttpOnly');
+                    //res.status(200).send();
                 } else {
-                    res.status(401);
+                    //res.status(401);
                 }
             }else{
-                res.status(401).send();
+                //res.status(401).send();
             }
         });
     })
 });
 
-
-function deleteGuitar(guitar_id){
-    let id = req.params.id;
-    let token =req.cookies.token;
-    if (token === undefined)
-        res.status(401).send();
-    else if (verifyToken(req.cookies.token)){
-        connection.query("DELETE FROM warehouse WHERE guitar_id = ?",guitar_id,function (err,results) {
-            if (err)
-                console.log(err);
-            else {
-                console.log("Data Deleted");
-                res.send(id);
-            }
-        });
-    }else {
-        res.send();
-    }
-}
-
 function verifyToken(token) {
-    return jwt.verify(token, SECRET_KEY);
+    return jwt.verify(token, process.env.SECRET_KEY);
 }
 
 
