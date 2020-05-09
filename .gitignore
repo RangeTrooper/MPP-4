@@ -1,2 +1,9 @@
 /package.json
 /package-lock.json
+/public/javascripts/jquery.js
+/node_modules/
+/public/javascripts/socket.io.js
+/.env
+/public/javascripts/bootstrap.min.js
+/public/javascripts/datatables.min.js
+/public/stylesheets/
