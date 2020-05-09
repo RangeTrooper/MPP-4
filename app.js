@@ -22,6 +22,7 @@ let connection = mysql.createConnection({
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public/images')));
 
 app.get('/', (req,res) => {
     console.log('working');
@@ -57,8 +58,13 @@ http.listen(3000, () =>{
 
 io.on('connection', (socket) => {
     console.log('connected by socket')
-    let data = "dfsdf"
-    socket.emit('data', data);
+    //let data = "dfsdf";
+    connection.query("SELECT * FROM warehouse;",function(err, results, fields) {
+        let guitars = JSON.stringify(results);
+        let content=JSON.parse(guitars);
+        socket.emit('data', content);
+    });
+
 });
 
 process.on("SIGINT",()=>{
