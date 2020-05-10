@@ -91,6 +91,14 @@ io.on('connection', (socket) => {
             socket.emit('access_denied');
     });
 
+    socket.on('add_image', function (image, filename) {
+        fs.writeFile(__dirname +  '\\public\\images\\'+ filename, image, function (error) {
+            if (!error) {
+                console.log('adding image succesful')
+            }
+        });
+    });
+
     socket.on('login', function (login, password) {
         let user=new User(login,password,null);
         let passwordDB ;

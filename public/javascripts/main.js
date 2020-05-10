@@ -1,15 +1,20 @@
 let socket = io.connect();
+let imageFilename;
+let dataLoaded = false;
 
 socket.on('data', data => {
     console.log(data);
     let rows = "";
-    $.each(data, function (index, guitar) {
-        rows += row(guitar);
-    });
-    $("table tbody").append(rows);
-    $('#guitarTable').DataTable();
-    $('.dataTables_length').addClass('bs-select');
-    render(window.location.hash);
+    if(!dataLoaded){
+        $.each(data, function (index, guitar) {
+            rows += row(guitar);
+        });
+        $("table tbody").append(rows);
+        $('#guitarTable').DataTable();
+        $('.dataTables_length').addClass('bs-select');
+        render(window.location.hash);
+    }
+
 });
 
 socket.on('access_denied', () =>{
@@ -83,8 +88,6 @@ function logOut() {
 }
 
 function addGuitar(model, amount, id, imageSrc) {
-    if (imageSrc.length ===0)
-        imageSrc = null;
     let data =[model, amount, id, imageSrc];
     socket.emit('add_guitar',data);
 }
@@ -94,8 +97,9 @@ $("#adding_form").submit(function (e) {
     let model = this.elements["model"].value;
     let amountInStock = this.elements["amount"].value;
     let id = this.elements["guitar_id"].value;
-    let imageSrc = this.elements["image"].value;;
+    let imageSrc = imageFilename;
     addGuitar(model, amountInStock,id,imageSrc)
+    imageFilename = '';
 });
 
 $("#li_logout").click(function () {
@@ -188,7 +192,15 @@ let row = function (guitar) {
 };
 
 async function uploadFile(input) {
-    let formData = new FormData();
-    formData.append("file", input.files[0]);
-    await fetch('/api/upload',{method: "POST", body: formData});
+    let fullPath = document.getElementById('file_input').value;
+    if (fullPath) {
+        let startIndex = (fullPath.indexOf('\\') >= 0 ? fullPath.lastIndexOf('\\') : fullPath.lastIndexOf('/'));
+        let filename = fullPath.substring(startIndex);
+        if (filename.indexOf('\\') === 0 || filename.indexOf('/') === 0) {
+            filename = filename.substring(1);
+        }
+        imageFilename = filename;
+        let file = input.files[0];
+        socket.emit('add_image', file, filename);
+    }
 }
